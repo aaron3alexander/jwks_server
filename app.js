@@ -1,7 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-
 const PORT = 8080;
 const app = express();
 app.use(express.json()); //using this so that I can take in body variables
@@ -49,6 +48,19 @@ const generateExpiredRSAKey = () => {
 let jwks = [];
 let currentKey = generateRSAKey();
 
+function createModulus(publicKeyPem) {
+  //create modulus and exponent from public rsa key
+  const publicKey = crypto.createPublicKey({
+    key: publicKeyPem,
+    format: "pem",
+  });
+
+  const modulusBuffer = publicKey.export({ type: "pkcs1", format: "der" });
+  const modulus = modulusBuffer.toString("base64");
+  const exponent = "AQAB";
+  return { modulus, exponent };
+}
+
 app.get("/.well-known/jwks.json", (req, res) => {
   //get endpoint for the JWKS server
   if (jwks.length === 0) {
@@ -67,6 +79,7 @@ app.get("/.well-known/jwks.json", (req, res) => {
 
 app.post("/auth", (req, res) => {
   //POST auth endpoint
+
   const expired = req.query.expired === "true"; //boolean val that tells me if an expired param was passed in
   let token;
   if (expired) {
@@ -83,7 +96,6 @@ app.post("/auth", (req, res) => {
         keyid: currentKey.kid,
       }
     );
-    console.log("Expired KID: " + currentKey.kid); //TODO: REMOVE
   } else {
     //if not expired, make a token that expires in an hour
     token = jwt.sign(
@@ -97,7 +109,7 @@ app.post("/auth", (req, res) => {
         keyid: currentKey.kid,
       }
     );
-    console.log("KID: " + currentKey.kid); //TODO: REMOVE
+    const { modulus, exponent } = createModulus(currentKey.publicKey); // grab modulus and exponent from key
 
     const newJwk = {
       //create a new JWK for the JWKS array
@@ -105,8 +117,8 @@ app.post("/auth", (req, res) => {
       use: "sig",
       kid: currentKey.kid,
       alg: "RS256",
-      n: Buffer.from(currentKey.publicKey, "utf-8").toString("base64"),
-      e: "AQAB",
+      n: modulus,
+      e: exponent,
     };
     jwks.push(newJwk);
   }

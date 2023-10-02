@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "forge": "^2.3.0",
+    "jose": "^4.14.6",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "nyc": "^15.1.0",
+    "supertest": "^6.3.3"
+  },
+  "scripts": {
+    "test": " nyc mocha test.js",
+    "coverage": "nyc report --reporter=html && start coverage/index.html"
+  }
+}
